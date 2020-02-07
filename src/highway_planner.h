@@ -56,7 +56,8 @@ private:
     
     // TODO: simple state machine
  
-    State state = State::KEEP_LANE;
+    State current_state = State::KEEP_LANE;
+    State next_state = State::KEEP_LANE;
 
     // trajs
     tk::spline prev_spline;
@@ -89,6 +90,7 @@ private:
     void ChangeLane(); 
     void PrepareLaneChange();
     void Predict();
+    void Decide();
 
 };
 
@@ -169,20 +171,29 @@ bool HighwayPlanner::Plan()
 };
 
 void HighwayPlanner::KeepLane(){
+    // drive safely in current lane
 
-}
+};
 
 void HighwayPlanner::ChangeLane(){
+    // given target lane and current lane, plan smooth trajectory to change lanes
 
-}
+};
 
 void HighwayPlanner::PrepareLaneChange(){
+    // given target ane and current lane, plan trajectory to facilitate lane change
 
-}
+};
 
-void Predict(){
+void HighwayPlanner::Predict(){
+    // given current observations, predict motorist behavior (SIMPLE)
 
-}
+};
+
+void HighwayPlanner::Decide(){
+    // given current ego vehicle state and observations/prediction about surrounding cars, decide next action/state in FSM
+
+};
 
 std::pair<std::vector<double>, std::vector<double>> HighwayPlanner::GetPlannedPath()
 {
@@ -194,7 +205,7 @@ std::pair<std::vector<double>, std::vector<double>> HighwayPlanner::GetPlannedPa
         next_y_vals.push_back(pt.y);
     }
     return std::make_pair(next_x_vals, next_y_vals);
-}
+};
 
 void HighwayPlanner::SetPrevPath(std::vector<double> last_path_x, std::vector<double> last_path_y)
 {
@@ -207,6 +218,6 @@ void HighwayPlanner::SetPrevPath(std::vector<double> last_path_x, std::vector<do
         pt.y = last_path_y[i];
         prev_path.push_back(pt);
     }
-}
+};
 
 #endif
