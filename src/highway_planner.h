@@ -75,7 +75,21 @@ private:
     double max_s = 6945.554;
 
     // dynamic obstacles
-    std::vector<std::vector<double>> cars;
+    std::vector<std::vector<double>> car_poses;
+    std::vector<std::vector<double>> predicted_car_poses;
+
+    // other info
+    int desired_lane = 0;
+    int current_lane = 0;
+    double max_jerk = 0;
+    double max_acc = 0;
+    double max_v = 0;
+
+    void KeepLane();
+    void ChangeLane(); 
+    void PrepareLaneChange();
+    void Predict();
+
 };
 
 void HighwayPlanner::SetPose(double x, double y, double s, double d, double yaw, double speed)
@@ -109,6 +123,7 @@ bool HighwayPlanner::Plan()
         default:
             // blah
     }
+
     // double pos_x;
     // double pos_y;
     // double angle;
@@ -152,6 +167,22 @@ bool HighwayPlanner::Plan()
     // prev_path = next_path;
     // return true;
 };
+
+void HighwayPlanner::KeepLane(){
+
+}
+
+void HighwayPlanner::ChangeLane(){
+
+}
+
+void HighwayPlanner::PrepareLaneChange(){
+
+}
+
+void Predict(){
+
+}
 
 std::pair<std::vector<double>, std::vector<double>> HighwayPlanner::GetPlannedPath()
 {
