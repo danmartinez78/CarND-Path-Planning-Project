@@ -125,54 +125,55 @@ bool HighwayPlanner::Plan()
             break;
         default:
             // blah
-    }
+            break;
+    };
 
-    // double pos_x;
-    // double pos_y;
-    // double angle;
-    // int path_size = prev_path.size();
-    // next_path.clear();
-
-    // for (int i = 0; i < path_size; ++i)
-    // {
-    //     Point pt;
-    //     pt.x = prev_path[i].x;
-    //     pt.y = prev_path[i].y;
-    //     next_path.push_back(pt);
-    // }
-
-    // if (path_size == 0)
-    // {
-    //     pos_x = pose.x;
-    //     pos_y = pose.y;
-    //     angle = deg2rad(pose.yaw);
-    // }
-    // else
-    // {
-    //     pos_x = prev_path[path_size - 1].x;
-    //     pos_y = prev_path[path_size - 1].y;
-
-    //     double pos_x2 = prev_path[path_size - 2].x;
-    //     double pos_y2 = prev_path[path_size - 2].y;
-    //     angle = atan2(pos_y - pos_y2, pos_x - pos_x2);
-    // }
-
-    // double dist_inc = 0.5;
-    // for (int i = 0; i < 50 - path_size; ++i)
-    // {
-    //     Point pt;
-    //     pt.x = pos_x + (dist_inc)*cos(angle + (i + 1) * (pi() / 100));
-    //     pt.y = pos_y + (dist_inc)*sin(angle + (i + 1) * (pi() / 100));
-    //     next_path.push_back(pt);
-    //     pos_x += (dist_inc)*cos(angle + (i + 1) * (pi() / 100));
-    //     pos_y += (dist_inc)*sin(angle + (i + 1) * (pi() / 100));
-    // }
-    // prev_path = next_path;
-    // return true;
+    return true;
 };
 
 void HighwayPlanner::KeepLane(){
     // drive safely in current lane
+    double pos_x;
+    double pos_y;
+    double angle;
+    int path_size = prev_path.size();
+    next_path.clear();
+
+    for (int i = 0; i < path_size; ++i)
+    {
+        Point pt;
+        pt.x = prev_path[i].x;
+        pt.y = prev_path[i].y;
+        next_path.push_back(pt);
+    }
+
+    if (path_size == 0)
+    {
+        pos_x = pose.x;
+        pos_y = pose.y;
+        angle = deg2rad(pose.yaw);
+    }
+    else
+    {
+        pos_x = prev_path[path_size - 1].x;
+        pos_y = prev_path[path_size - 1].y;
+
+        double pos_x2 = prev_path[path_size - 2].x;
+        double pos_y2 = prev_path[path_size - 2].y;
+        angle = atan2(pos_y - pos_y2, pos_x - pos_x2);
+    }
+
+    double dist_inc = 0.5;
+    for (int i = 0; i < 50 - path_size; ++i)
+    {
+        Point pt;
+        pt.x = pos_x + (dist_inc)*cos(angle + (i + 1) * (pi() / 100));
+        pt.y = pos_y + (dist_inc)*sin(angle + (i + 1) * (pi() / 100));
+        next_path.push_back(pt);
+        pos_x += (dist_inc)*cos(angle + (i + 1) * (pi() / 100));
+        pos_y += (dist_inc)*sin(angle + (i + 1) * (pi() / 100));
+    }
+    prev_path = next_path;
 
 };
 
