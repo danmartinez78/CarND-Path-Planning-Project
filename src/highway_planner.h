@@ -90,7 +90,7 @@ private:
     void ChangeLane(); 
     void PrepareLaneChange();
     void Predict();
-    void Decide();
+    void PlanBehavior();
 
 };
 
@@ -106,7 +106,8 @@ void HighwayPlanner::SetPose(double x, double y, double s, double d, double yaw,
 
 bool HighwayPlanner::Plan()
 {
-    switch(state){
+    PlanBehavior();
+    switch(current_state){
         case State::KEEP_LANE:
             // blah
             break;
@@ -190,7 +191,7 @@ void HighwayPlanner::Predict(){
 
 };
 
-void HighwayPlanner::Decide(){
+void HighwayPlanner::PlanBehavior(){
     // given current ego vehicle state and observations/prediction about surrounding cars, decide next action/state in FSM
 
 };
