@@ -109,7 +109,7 @@ bool HighwayPlanner::Plan()
     PlanBehavior();
     switch(current_state){
         case State::KEEP_LANE:
-            // blah
+            KeepLane();
             break;
         case State::PLCL:
             // blah
