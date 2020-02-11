@@ -93,8 +93,8 @@ private:
     void Predict();
     void PlanBehavior();
     double distance(double, double, double, double);
-    std::vector<Point> ToLocalFrame(Point, double, std::vector<Point>);
-    std::vector<Point> ToGlobalFrame(Point, double, std::vector<Point>);
+    std::vector<std::vector<double>> ToLocalFrame(double, double, double, std::vector<std::vector<double>>);
+    std::vector<std::vector<double>> ToGlobalFrame(double, double, double, std::vector<std::vector<double>>);
     std::pair<std::vector<double>, std::vector<double>> SplitPath(std::vector<Point>);
     std::vector<Point> JoinPath(std::vector<double>, std::vector<double>);
 };
@@ -109,15 +109,19 @@ void HighwayPlanner::SetPose(double x, double y, double s, double d, double yaw,
     pose.speed = speed;
 };
 
-std::vector<HighwayPlanner::Point> HighwayPlanner::ToLocalFrame(Point ref, double yaw, std::vector<Point> path){
-    std::vector<Point> transformed_path;
-    for (Point pt:path){
-        double shift_x = pt.x - ref.x;
-        double shift_y = pt.y - ref.y;
-        pt.x = (shift_x*cos(0-yaw)-shift_y*sin(0-yaw));
-        pt.y = (shift_x*sin(0-yaw)-shift_y*cos(0-yaw));
-        transformed_path.push_back(pt); 
+std::vector<std::vector<double>> HighwayPlanner::ToLocalFrame(double x_ref, double y_ref, double yaw_ref, std::vector<std::vector<double>> path){
+    std::vector<double> x_pts = path[0];
+    std::vector<double> y_pts = path[1];
+    int path_size = x_pts.size();
+    for (int i = 0;i<path_size;i++){
+        double shift_x = x_pts[i] - x_ref;
+        double shift_y = y_pts[i] - y_ref;
+        x_pts[i] = (shift_x*cos(0-yaw_ref)-shift_y*sin(0-yaw_ref));
+        y_pts[i] = (shift_x*sin(0-yaw_ref)-shift_y*cos(0-yaw_ref)); 
     }
+    std::vector<std::vector<double>> transformed_path;
+    transformed_path.push_back(x_pts);
+    transformed_path.push_back(y_pts);
     return transformed_path;
 };
 
@@ -168,30 +172,40 @@ void HighwayPlanner::KeepLane(){
         spline_pts_y.push_back(pose.y - sin(deg2rad(pose.yaw)));
         spline_pts_x.push_back(pose.x);
         spline_pts_y.push_back(pose.y);
+        starting_yaw = pose.yaw;
     }else{
         Point pt, prev_pt;
         pt = prev_path[path_size-1];
         prev_pt = prev_path[path_size-2];
         starting_yaw = atan2(pt.y - prev_pt.y, pt.x - prev_pt.x);
+        spline_pts_x.push_back(prev_pt.x);
+        spline_pts_x.push_back(pt.x);
+        spline_pts_y.push_back(prev_pt.y);
+        spline_pts_y.push_back(pt.y);
     }
 
     for (int dist = 30;dist<100;dist+=30){
         vector<double> wp = getXY(pose.s+dist,(2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-        Point pt{wp[0],wp[1]};
-        next_path.push_back(pt);
+        spline_pts_x.push_back(wp[0]);
+        spline_pts_x.push_back(wp[1]);
     }
 
     // transform to local frame
-    next_path = ToLocalFrame(next_path[0], starting_yaw, next_path);
+    std::vector<std::vector<double>> path_to_transform;
+    path_to_transform.push_back(spline_pts_x);
+    path_to_transform.push_back(spline_pts_y);
+    auto transformed_path = ToLocalFrame(spline_pts_x[0], spline_pts_y[0], starting_yaw, path_to_transform);
     std::vector<double> x_pts;
     std::vector<double> y_pts;
  
      // create spline
     tk::spline s;
 
+    // set spline points
     auto path_pts = SplitPath(next_path);
-    s.set_points(path_pts.first, path_pts.second);
+    s.set_points(transformed_path[0], transformed_path[1]);
 
+    // interpolate points corresponding to desired speed
     for (int i = 0; i < 50 - path_size; ++i)
     {
         double next_s = pose.s + (i+1)*desired_dist_inc;
