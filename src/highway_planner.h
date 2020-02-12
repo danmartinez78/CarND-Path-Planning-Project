@@ -112,8 +112,8 @@ void HighwayPlanner::SetPose(double x, double y, double s, double d, double yaw,
 std::vector<std::vector<double>> HighwayPlanner::ToLocalFrame(double x_ref, double y_ref, double yaw_ref, std::vector<std::vector<double>> path){
     std::vector<double> x_pts = path[0];
     std::vector<double> y_pts = path[1];
-    int path_size = x_pts.size();
-    for (int i = 0;i<path_size;i++){
+    int prev_path_size = x_pts.size();
+    for (int i = 0;i<prev_path_size;i++){
         double shift_x = x_pts[i] - x_ref;
         double shift_y = y_pts[i] - y_ref;
         x_pts[i] = (shift_x*cos(0-yaw_ref)-shift_y*sin(0-yaw_ref));
@@ -160,13 +160,22 @@ void HighwayPlanner::KeepLane(){
     double desired_speed = max_speed_meters;
     double desired_dist_inc = desired_speed/50;
 
-    int path_size = prev_path.size(); // size of left over path
-    next_path.clear();
+    std::vector<double> next_x;
+    std::vector<double> next_y;
+    int prev_path_size = prev_path.size(); // size of left over path
+
+    // preserve remnant of previous path
+    for(int i =0; i<prev_path_size;i++){
+        Point pt = prev_path[i];
+        next_x.push_back(pt.x);
+        next_y.push_back(pt.y);
+    }
+    
     double starting_yaw = deg2rad(pose.yaw);
     std::vector<double> spline_pts_x;
     std::vector<double> spline_pts_y;
 
-    if (path_size < 2){
+    if (prev_path_size < 2){
         Point pt;
         spline_pts_x.push_back(pose.x - cos(deg2rad(pose.yaw)));
         spline_pts_y.push_back(pose.y - sin(deg2rad(pose.yaw)));
@@ -175,8 +184,8 @@ void HighwayPlanner::KeepLane(){
         starting_yaw = pose.yaw;
     }else{
         Point pt, prev_pt;
-        pt = prev_path[path_size-1];
-        prev_pt = prev_path[path_size-2];
+        pt = prev_path[prev_path_size-1];
+        prev_pt = prev_path[prev_path_size-2];
         starting_yaw = atan2(pt.y - prev_pt.y, pt.x - prev_pt.x);
         spline_pts_x.push_back(prev_pt.x);
         spline_pts_x.push_back(pt.x);
@@ -194,28 +203,38 @@ void HighwayPlanner::KeepLane(){
     std::vector<std::vector<double>> path_to_transform;
     path_to_transform.push_back(spline_pts_x);
     path_to_transform.push_back(spline_pts_y);
-    auto transformed_path = ToLocalFrame(spline_pts_x[0], spline_pts_y[0], starting_yaw, path_to_transform);
-    std::vector<double> x_pts;
-    std::vector<double> y_pts;
- 
+    auto transformed_path = ToLocalFrame(spline_pts_x[spline_pts_x.size()-1], spline_pts_y[spline_pts_y.size()-1], starting_yaw, path_to_transform);
+     
      // create spline
     tk::spline s;
 
     // set spline points
-    auto path_pts = SplitPath(next_path);
     s.set_points(transformed_path[0], transformed_path[1]);
-
+    
     // interpolate points corresponding to desired speed
-    for (int i = 0; i < 50 - path_size; ++i)
+    double look_ahead_x = 30.0; // meters
+    double look_ahead_y = s(look_ahead_x);
+    double look_ahead_dist = sqrt(look_ahead_x*look_ahead_x+look_ahead_y*look_ahead_y);
+    double increment = 0;
+
+
+    for (int i = 0; i < 50 - prev_path_size; ++i)
     {
-        double next_s = pose.s + (i+1)*desired_dist_inc;
-        double next_d = pose.d;
-        std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-        Point pt;
-        pt.x = xy[0];
-        pt.y = xy[1];
-        next_path.push_back(pt);
+        double N = (look_ahead_dist)/(0.2*max_speed_meters);
+        double next_x_pt = increment+look_ahead_x/N;
+        double next_y_pt = s(next_x_pt);
+        increment = next_x_pt;
+        double x_ref = next_x_pt;
+        double y_ref = next_y_pt;
+
+        next_x_pt = (x_ref*cos(starting_yaw)-y_ref*sin(starting_yaw));
+        next_y_pt = (x_ref*sin(starting_yaw)-y_ref*cos(starting_yaw));
+        next_x_pt += x_ref;
+        next_y_pt += y_ref;
+        next_x.push_back(next_x_pt);
+        next_y.push_back(next_y_pt);
     }
+    next_path = JoinPath(next_x, next_y);
 };
 
 void HighwayPlanner::ChangeLane(){
@@ -253,8 +272,8 @@ std::pair<std::vector<double>, std::vector<double>> HighwayPlanner::GetPlannedPa
 void HighwayPlanner::SetPrevPath(std::vector<double> last_path_x, std::vector<double> last_path_y)
 {
     this->prev_path.clear();
-    int path_size = last_path_x.size();
-    for (int i = 0; i < path_size; i++)
+    int prev_path_size = last_path_x.size();
+    for (int i = 0; i < prev_path_size; i++)
     {
         Point pt;
         pt.x = last_path_x[i];
