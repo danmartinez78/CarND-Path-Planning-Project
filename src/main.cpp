@@ -7,7 +7,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "helpers.h"
 #include "json.hpp"
-#include "highway_planner.h"
+#include "HighwayPlanner.h"
 
 // for convenience
 using nlohmann::json;
@@ -51,8 +51,9 @@ int main()
     map_waypoints_dx.push_back(d_x);
     map_waypoints_dy.push_back(d_y);
   }
+  
   HighwayPlanner myPlanner(map_waypoints_x, map_waypoints_y, map_waypoints_s,
-                           map_waypoints_dx, map_waypoints_dy);
+                          map_waypoints_dx, map_waypoints_dy);
 
   h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
                &map_waypoints_dx, &map_waypoints_dy, &myPlanner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -60,7 +61,7 @@ int main()
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-
+    
     if (length && length > 2 && data[0] == '4' && data[1] == '2')
     {
 
@@ -104,19 +105,10 @@ int main()
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
+          myPlanner.SetState(car_x, car_y, car_s, car_d, car_yaw, car_speed);
+          myPlanner.Sense(sensor_fusion);
           
-          myPlanner.SetPose(car_x, car_y, car_s, car_d, car_yaw, car_speed);
-          myPlanner.SetPrevPath(previous_path_x, previous_path_y);
-          
-          if (myPlanner.Plan())
-          {
-            auto final_path = myPlanner.GetPlannedPath();
-            next_x_vals = final_path.first;
-            next_y_vals = final_path.second;
-          }
-
-          // END
-
+  
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 

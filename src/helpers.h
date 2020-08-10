@@ -1,6 +1,8 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#pragma once
+
 #include <math.h>
 #include <string>
 #include <vector>
