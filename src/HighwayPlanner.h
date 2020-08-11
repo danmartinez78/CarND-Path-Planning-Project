@@ -4,6 +4,7 @@
 #include "spline.h"  // spline library
 #include <vector>
 #include <math.h>
+#include <iostream>
 
 class HighwayPlanner
 {
@@ -59,7 +60,7 @@ public:
         {
             double map_x =  map_waypoints_x[i];
             double map_y =  map_waypoints_y[i];
-            double dist = distance(x, y, map_x, map_y);
+            double dist = calc_distance(x, y, map_x, map_y);
             if (dist < closestLen)
             {
                 closestLen = dist;
@@ -117,7 +118,7 @@ public:
         double proj_x = proj_norm * n_x;
         double proj_y = proj_norm * n_y;
 
-        double frenet_d = distance(x_x, x_y, proj_x, proj_y);
+        double frenet_d =calc_distance(x_x, x_y, proj_x, proj_y);
 
         //see if d value is positive or negative by comparing it to a center point
         double center_x = 1000 -  map_waypoints_x[prev_wp];
@@ -134,10 +135,10 @@ public:
         double frenet_s = 0;
         for (int i = 0; i < prev_wp; ++i)
         {
-            frenet_s += distance( map_waypoints_x[i],  map_waypoints_y[i],  map_waypoints_x[i + 1],  map_waypoints_y[i + 1]);
+            frenet_s += calc_distance( map_waypoints_x[i],  map_waypoints_y[i],  map_waypoints_x[i + 1],  map_waypoints_y[i + 1]);
         }
 
-        frenet_s += distance(0, 0, proj_x, proj_y);
+        frenet_s += calc_distance(0, 0, proj_x, proj_y);
 
         return {frenet_s, frenet_d};
     }
@@ -188,10 +189,6 @@ private:
     HighwayPlanner::BehaviorState m_current_planner_state = BehaviorState::KEEPLANE;
     HighwayPlanner::BehaviorState m_next_planner_state = BehaviorState::KEEPLANE;
 
-    // trajs
-    tk::spline m_prev_spline;
-    tk::spline m_next_spline;
-
     // paths
     std::vector<double> m_last_path_x;
     std::vector<double> m_last_path_y;
@@ -199,6 +196,7 @@ private:
     std::vector<double> m_next_path_y;
     double end_path_s;
     double end_path_d;
+    int prev_size = 0;
 
     // map info
     std::vector<double> map_waypoints_x;
@@ -217,20 +215,20 @@ private:
     int current_lane = 1;
     double max_jerk = 0;
     double max_acc = 0;
-    double max_speed_mph = 49.5;
-    double max_speed_meters = max_speed_mph / 2.237;
-    double dt = 0.1;
+    double target_speed_mph = 49.5;
+    double target_speed_meters = target_speed_mph / 2.237;
+    double dt = 0.02;
     double time_elapsed = 0;
     double hole_s = 0;
+    double num_points = 50;
 
     void KeepLane();
     void ChangeLane();
     void PrepareLaneChange();
     void Predict();
     void PlanBehavior();
-    double distance(double, double, double, double);
-    std::vector<std::vector<double>> ToLocalFrame(double, double, double, std::vector<std::vector<double>>);
-    std::vector<std::vector<double>> ToGlobalFrame(double, double, double, std::vector<std::vector<double>>);
+    std::vector<std::vector<double>> ToLocalFrame(double, double, double, std::vector<double>, std::vector<double>);
+    std::vector<std::vector<double>> ToGlobalFrame(double, double, double, std::vector<double>, std::vector<double>);
 };
 
 #endif
