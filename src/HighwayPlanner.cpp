@@ -22,6 +22,9 @@ std::pair<std::vector<double>, std::vector<double>> HighwayPlanner::GetPlannedPa
     return std::make_pair(m_next_path_x, m_next_path_y);
 }
 
+void HighwayPlanner::Sense(std::vector<std::vector<double>> observation) { 
+    this->car_poses = observation; }
+
 void HighwayPlanner::Predict(){
     double time_to_predict = prev_size*0.02; // TODO: check this
     predicted_car_poses.clear();
@@ -171,12 +174,11 @@ void HighwayPlanner::ChangeLane(){
 }
 
 bool HighwayPlanner::Plan(){
-    std::cout << "Planning\n";
+    printStatus();
     //Predict();
     //PlanBehavior();
     switch(m_next_planner_state){
         case HighwayPlanner::BehaviorState::KEEPLANE:
-            std::cout << "Keeping Lane\n"; 
             desired_lane = current_lane;
             // plan smooth station keeping
             KeepLane();
@@ -214,5 +216,33 @@ std::vector<std::vector<double>> HighwayPlanner::ToLocalFrame(double ref_x, doub
     }
     std::vector<std::vector<double>> xformed_pts{ptsx, ptsy};
     return xformed_pts;
+}
+
+void HighwayPlanner::printStatus(){
+    std::cout << "\nSTATUS------------------\n";
+    std::cout << "x,y,yaw: (" << m_state.x << "," << m_state.y << "," << HighwayPlanner::getrad2deg(m_state.yaw) << ")\n";
+    std::cout << "s,d: (" << m_state.d << "," << m_state.d << ")\n";
+    std::cout << "speed: " << m_state.speed << "\n";
+    std::cout << "Behavior: " ;
+    switch (m_current_planner_state)
+    {
+    case HighwayPlanner::BehaviorState::KEEPLANE:
+        std::cout << "KEEPLANE\n";
+        break;
+    case HighwayPlanner::BehaviorState::PLCL:
+        std::cout << "PLCL\n";
+        break;
+    case HighwayPlanner::BehaviorState::PLCR:
+        std::cout << "PLCR\n";
+        break;
+    case HighwayPlanner::BehaviorState::LCL:
+        std::cout << "LCL\n";
+        break;
+    case HighwayPlanner::BehaviorState::LCR:
+        std::cout << "LCR\n";
+        break;
+    default:
+        break;
+    }
 }
 

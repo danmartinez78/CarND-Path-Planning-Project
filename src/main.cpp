@@ -105,6 +105,7 @@ int main()
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
+          
           myPlanner.SetPrevPath(previous_path_x, previous_path_y);
           myPlanner.SetState(car_x, car_y, car_s, car_d, car_yaw, car_speed);
           myPlanner.Sense(sensor_fusion);

@@ -172,12 +172,11 @@ public:
     }
 
     void SetState(double x, double y, double s, double d, double yaw, double speed);
-    void Sense(std::vector<std::vector<double>> observation) { this->car_poses = observation; }
+    void Sense(std::vector<std::vector<double>> observation);
     bool Plan();
     std::pair<std::vector<double>, std::vector<double>> GetPlannedPath();
     void SetPrevPath(std::vector<double> last_path_x, std::vector<double> last_path_y);
-
-    bool initialized = false;
+    void printStatus();
 
 private:
     /* data */
