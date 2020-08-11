@@ -185,8 +185,8 @@ private:
 
     // TODO: simple state machine
 
+    HighwayPlanner::BehaviorState m_previous_planner_state = BehaviorState::KEEPLANE;
     HighwayPlanner::BehaviorState m_current_planner_state = BehaviorState::KEEPLANE;
-    HighwayPlanner::BehaviorState m_next_planner_state = BehaviorState::KEEPLANE;
 
     // paths
     std::vector<double> m_last_path_x;
@@ -213,7 +213,8 @@ private:
     int desired_lane = 1;
     int current_lane = 1;
     double max_jerk = 0;
-    double max_acc = .224/2.237;
+    double max_acc = .5/2.237;
+    double max_dec = .2/2.237;
     double max_speed_mph = 49.5;
     double max_speed_meters = max_speed_mph / 2.237;
     double target_speed = 0.01;
@@ -221,13 +222,19 @@ private:
     double time_elapsed = 0;
     double hole_s = 0;
     double num_points = 50;
-    double avoid_distance = 30;
+    double collision_avoid_distance = 20;
+    double lane_avoid_distance = 60;
+    double target_s = 0;
+    bool collision_imm = false;
+    double smooth_change = 0;
+    double min_window = 25;
+    double max_windw = 40;
 
-    void KeepLane();
-    void ChangeLane();
-    void PrepareLaneChange();
+    void GenerateTraj();
     void Predict();
     void PlanBehavior();
+    bool CheckCollision(double, double);
+    bool CheckLane(int);
     std::vector<std::vector<double>> ToLocalFrame(double, double, double, std::vector<double>, std::vector<double>);
     std::vector<std::vector<double>> ToGlobalFrame(double, double, double, std::vector<double>, std::vector<double>);
 };

@@ -69,6 +69,17 @@ the path has processed since last time.
 
 A really helpful resource for doing this project and creating smooth trajectories was using http://kluge.in-chemnitz.de/opensource/spline/, the spline function is in a single hearder file is really easy to use.
 
+
+## Path Generation
+
+In order to generate the required paths for safe highway navigation, several steps were taken. The system starts in a KEEPLANE behavior state with a desired speed of 0.01. The first step in the planning process is to utilize the observed state of other cars in the scene and make a simple prediction. The state of every car in the scene, as reported by sensor fusion, is propagated into the future based on the car's current spped and a fixed horizon based on the number of points left pver from the previous path and a fixed time delta of 0.02 seconds per step.
+
+Once the prediction is made, behavior planning is performed. The behavior planning is a very straightforward FSM that consists of 5 states: KEEPLANE, PLCL, PLCR, LCL, LCR. If we are currently in the LANEKEEP state a look ahead is made, if a car is detected in the same lane ahead of us, we attempt to look for an available lane to change into. A check is made of adjacent lanes to ensure there is an available window to maneuver in.
+
+If a lane is available, the behavior state PLCL or PLCR is entered. Speed is adjusted and another check is made to ensore the lane is open. The lane change is then performed by switching to the LCL or LCR state. In this state a smoothing factor is adjusted in increments of +/- 0.1. This smotting factor increments the current_lane variable until the state of the ego vehicle is within the bounds of the lane. This ensures that the spline trajectory generation is smooth when switching lanes. Overall the algorithms perform marginally well, although there are several tuning parameters that need to be adjusted in order to achieve desired performance.
+
+Improved prediction by attempting to compute a delta in d as well as s may help to detect vehicles that are changing lanes around us. A dynamic look ahead distance and speed matching of leading vehicles as well as lane change openings may produce better trajectories. In addition, less course utility scoring of lanes may yield better performance of the behavior planner.
+
 ---
 
 ## Dependencies
