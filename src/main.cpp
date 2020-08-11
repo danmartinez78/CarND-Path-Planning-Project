@@ -106,7 +106,7 @@ int main()
            *   sequentially every .02 seconds
            */
           
-          myPlanner.SetPrevPath(previous_path_x, previous_path_y);
+          myPlanner.SetPrevPath(previous_path_x, previous_path_y, end_path_s, end_path_d);
           myPlanner.SetState(car_x, car_y, car_s, car_d, car_yaw, car_speed);
           myPlanner.Sense(sensor_fusion);
           if (myPlanner.Plan())

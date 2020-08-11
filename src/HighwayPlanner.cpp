@@ -10,34 +10,44 @@ void HighwayPlanner::SetState(double x, double y, double s, double d, double yaw
     this->m_state.speed = speed;
 }
 
-void HighwayPlanner::SetPrevPath(std::vector<double> last_path_x, std::vector<double> last_path_y){
+void HighwayPlanner::SetPrevPath(std::vector<double> last_path_x, std::vector<double> last_path_y, double end_path_s, double end_path_d){
     m_last_path_x.clear();
     m_last_path_y.clear();
     this->m_last_path_x = last_path_x;
     this->m_last_path_y = last_path_y;
     this->prev_size = last_path_x.size();
+    this->end_path_s = end_path_s;
+    this->end_path_d = end_path_d;
 }
 
 std::pair<std::vector<double>, std::vector<double>> HighwayPlanner::GetPlannedPath(){
     return std::make_pair(m_next_path_x, m_next_path_y);
 }
 
-void HighwayPlanner::Sense(std::vector<std::vector<double>> observation) { 
-    this->car_poses = observation; }
-
-void HighwayPlanner::Predict(){
-    double time_to_predict = prev_size*0.02; // TODO: check this
-    predicted_car_poses.clear();
-    for(auto car:this->car_poses){
-        double x = car[1];
-        double y = car[2];
+void HighwayPlanner::Sense(std::vector<std::vector<double>> observation) {
+    // each obs has id, x, y, vx, vy, s, d
+    car_poses.clear();
+    for (auto car:observation){
+        State car_state;
+        car_state.x = car[1];
+        car_state.y = car[2];
         double vx = car[3];
         double vy = car[4];
-        double speed = sqrt(vx*vx + vy*vy);
-        double s = car[5];
-        s += time_to_predict * speed;
-        double d = car[6];
-        std::vector<double> pred_car{s, d, speed};
+        car_state.speed = sqrt(vx*vx + vy*vy);
+        car_state.s = car[5];
+        car_state.d = car[6];
+        car_poses.push_back(car_state);
+    }
+}
+
+void HighwayPlanner::Predict(){
+    // simple prediction based on speed
+    double time_to_predict = prev_size*0.02; // TODO: check this
+    predicted_car_poses.clear();
+    for(auto car_state:this->car_poses){
+        State new_car_state = car_state;
+        new_car_state.s += time_to_predict * new_car_state.speed;
+        predicted_car_poses.push_back(new_car_state);
     }
 }
 
@@ -47,7 +57,7 @@ void HighwayPlanner::PlanBehavior(){
     // if lane change, check to see if in desired lane, transition to keep lane, else keep changing lane
     switch(m_current_planner_state){
         case HighwayPlanner::BehaviorState::KEEPLANE:
-            // TODO: if keep lane, compare average speeds in lane, if fastest lane is not mine, if hole exists, transition to planning a lane change, else keep lane
+            // TODO: if keep lane, compare average speeds in adjacent lanes, if fastest lane is not mine, if hole exists, transition to planning a lane change, else keep lane
             
             break;
         case HighwayPlanner::BehaviorState::PLCL:
@@ -79,6 +89,37 @@ void HighwayPlanner::KeepLane(){
     // look forward and plan station keeping traj
     // smooth by using part of last traj
     // compute remaining traj with desired speed
+    double target_s = m_state.s;
+    if(prev_size > 0){
+        target_s = end_path_s;
+        // car_s = end_path_s;
+    }
+
+    bool collision_imm = false;
+    for (auto car:predicted_car_poses){
+        // figure out if in my lane
+        if(car.d > (2+current_lane*4-2) && car.d < (2+current_lane*4+2)){
+            if(car.s > target_s && (car.s - target_s) < avoid_distance){
+                // std::cout << "-------------------COLLISION IMMINENT-------------------\n";
+                // std::cout << "my car s,d: " << target_s << "," << m_state.d << "\nother car s,d: " << car.s <<"," << car.d << "\n";
+                collision_imm = true;
+            }
+        }
+    }
+
+    if(!collision_imm){
+        target_speed += max_acc;
+        target_speed = std::min(max_speed_meters, target_speed);
+    }else{
+        target_speed -= max_acc;
+        target_speed = std::max(0.5, target_speed);
+    }
+    
+    // look for cars in my lane
+    for (auto car:car_poses){
+
+    }
+    
     double ref_x = m_state.x;
     double ref_y = m_state.y;
     double ref_yaw = m_state.yaw;
@@ -106,9 +147,9 @@ void HighwayPlanner::KeepLane(){
         ptsy.push_back(ref_y);
     }
 
-    std::vector<double> next_wp0 = getXY(m_state.s + 30, (2+4*current_lane));
-    std::vector<double> next_wp1 = getXY(m_state.s + 60, (2+4*current_lane));
-    std::vector<double> next_wp2 = getXY(m_state.s + 90, (2+4*current_lane));
+    std::vector<double> next_wp0 = getXY(target_s + 30, (2+4*current_lane));
+    std::vector<double> next_wp1 = getXY(target_s + 60, (2+4*current_lane));
+    std::vector<double> next_wp2 = getXY(target_s + 90, (2+4*current_lane));
 
     ptsx.push_back(next_wp0[0]);
     ptsx.push_back(next_wp1[0]);
@@ -141,7 +182,7 @@ void HighwayPlanner::KeepLane(){
 
     double x_add_on = 0;
     for (int i = 0; i <=num_points-prev_size;i++){
-        double N = (target_d/(dt*target_speed_meters));
+        double N = (target_d/(dt*target_speed));
         double x_point = x_add_on + (target_x)/N;
         double y_point = s(x_point);
 
@@ -174,8 +215,8 @@ void HighwayPlanner::ChangeLane(){
 }
 
 bool HighwayPlanner::Plan(){
-    printStatus();
-    //Predict();
+    printStatus(m_state, m_current_planner_state);
+    Predict();
     //PlanBehavior();
     switch(m_next_planner_state){
         case HighwayPlanner::BehaviorState::KEEPLANE:
@@ -218,13 +259,13 @@ std::vector<std::vector<double>> HighwayPlanner::ToLocalFrame(double ref_x, doub
     return xformed_pts;
 }
 
-void HighwayPlanner::printStatus(){
-    std::cout << "\nSTATUS------------------\n";
-    std::cout << "x,y,yaw: (" << m_state.x << "," << m_state.y << "," << HighwayPlanner::getrad2deg(m_state.yaw) << ")\n";
-    std::cout << "s,d: (" << m_state.d << "," << m_state.d << ")\n";
-    std::cout << "speed: " << m_state.speed << "\n";
+void HighwayPlanner::printStatus(HighwayPlanner::State state, HighwayPlanner::BehaviorState bstate){
+    std::cout << "\n------------------STATUS------------------\n";
+    std::cout << "x,y,yaw: (" << state.x << "," << state.y << "," << HighwayPlanner::getrad2deg(state.yaw) << ")\n";
+    std::cout << "s,d: (" << state.s << "," << state.d << ")\n";
+    std::cout << "speed: " << state.speed << "\n";
     std::cout << "Behavior: " ;
-    switch (m_current_planner_state)
+    switch (bstate)
     {
     case HighwayPlanner::BehaviorState::KEEPLANE:
         std::cout << "KEEPLANE\n";
@@ -242,7 +283,9 @@ void HighwayPlanner::printStatus(){
         std::cout << "LCR\n";
         break;
     default:
+        std::cout << "NULL\n";
         break;
     }
+    std::cout << "Total Observed Obstacles: " << car_poses.size() << "\n";
 }
 

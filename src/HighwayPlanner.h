@@ -175,8 +175,8 @@ public:
     void Sense(std::vector<std::vector<double>> observation);
     bool Plan();
     std::pair<std::vector<double>, std::vector<double>> GetPlannedPath();
-    void SetPrevPath(std::vector<double> last_path_x, std::vector<double> last_path_y);
-    void printStatus();
+    void SetPrevPath(std::vector<double>, std::vector<double>, double, double);
+    void printStatus(HighwayPlanner::State state, HighwayPlanner::BehaviorState bstate);
 
 private:
     /* data */
@@ -206,20 +206,22 @@ private:
     double max_s = 6945.554;
 
     // dynamic obstacles
-    std::vector<std::vector<double>> car_poses;
-    std::vector<std::vector<double>> predicted_car_poses;
+    std::vector<HighwayPlanner::State> car_poses; //index 0 left lane, 1 center lane, 2 right lane
+    std::vector<HighwayPlanner::State> predicted_car_poses;
 
     // other info
     int desired_lane = 1;
     int current_lane = 1;
     double max_jerk = 0;
-    double max_acc = 0;
-    double target_speed_mph = 49.5;
-    double target_speed_meters = target_speed_mph / 2.237;
+    double max_acc = .224/2.237;
+    double max_speed_mph = 49.5;
+    double max_speed_meters = max_speed_mph / 2.237;
+    double target_speed = 0.01;
     double dt = 0.02;
     double time_elapsed = 0;
     double hole_s = 0;
     double num_points = 50;
+    double avoid_distance = 30;
 
     void KeepLane();
     void ChangeLane();
